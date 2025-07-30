@@ -7,6 +7,7 @@ urlpatterns = [
     path('profile/me/update/',view=views.update_my_profile),
     path('profile/all/',view=views.get_all_profiles),
     path('profile/<int:profile_id>/',view=views.get_profile),
+    path('profile/current_user/',view=views.get_current_user),
 ]
 
 

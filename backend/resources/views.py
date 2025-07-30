@@ -166,7 +166,7 @@ def report_resource(request,resource_id:int):
         }, status=status.HTTP_429_TOO_MANY_REQUESTS)
     resource = get_object_or_404(Resource,id=resource_id)
     resource.add_report()
-    #resource.save()
+    resource.save()
     return Response({'detail': 'Resource reported successfully'},status=status.HTTP_200_OK)
 
 
@@ -244,6 +244,8 @@ def delete_question(request,question_id:int):
     return Response({'detail': 'Question deleted successfully'},status=status.HTTP_204_NO_CONTENT)
 
 
+
+from .throttling import QuestionReportThrottle
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def report_question(request,question_id:int):
@@ -254,8 +256,15 @@ def report_question(request,question_id:int):
     Parameters: question_id (integer) - Question ID
     Response: {"detail": "Question reported successfully"}
     """
+    throttle = QuestionReportThrottle()
+    if not throttle.allow_request(request,None):
+        return Response({
+            'error': 'Rate limit exceeded',
+            'detail': 'You can only report this question once per 2 h'
+        }, status=status.HTTP_429_TOO_MANY_REQUESTS)
     question = get_object_or_404(Question,id=question_id)
     question.add_report()
+    #question.save()
     return Response({'detail': 'Question reported successfully'},status=status.HTTP_200_OK)
 
 
@@ -361,6 +370,7 @@ def delete_reply(request,reply_id:int):
     return Response({'detail': 'Reply deleted successfully'},status=status.HTTP_204_NO_CONTENT)
 
 
+from .throttling import ReplyReportThrottle
 @api_view(['POST'])
 def report_reply(request,reply_id:int):
     """
@@ -370,6 +380,12 @@ def report_reply(request,reply_id:int):
     Parameters: reply_id (integer) - Reply ID
     Response: {"detail": "Reply reported successfully"}
     """
+    throttle = ReplyReportThrottle()
+    if not throttle.allow_request(request,None):
+        return Response({
+            'error': 'Rate limit exceeded',
+            'detail': 'You can only report this reply once per 2 h'
+        }, status=status.HTTP_429_TOO_MANY_REQUESTS)
     reply = get_object_or_404(Reply,id=reply_id)
     reply.add_report()
     return Response({'detail': 'Reply reported successfully'},status=status.HTTP_200_OK)
@@ -397,6 +413,7 @@ def create_images(rel,rel_id,images,SERIALIZER):
         if image_ser.is_valid():
             image_ser.save()
         else:
+            print(image_ser.errors)
             errors = True
     return errors
 
@@ -433,7 +450,7 @@ def add_images_to_reply(request,reply_id):
     Request Body: FormData with 'images' field containing multiple image files
     Response: {"details": "the images have been added successfully"}
     """
-    reply = get_object_or_404(Question,id=reply_id)
+    reply = get_object_or_404(Reply,id=reply_id)
     if reply.author != request.user and not request.user.is_staff:
         return Response({'error': 'You are not the author of this reply'},status=status.HTTP_403_FORBIDDEN)
     images = request.FILES.getlist('images')
@@ -479,17 +496,21 @@ def delete_qst_images(request,qst_id):
     Description: Delete images from a question (only by author or staff)
     Authentication: Required
     Parameters: qst_id (integer) - Question ID
-    Request Body: {"images_ids": "1,2,3"}
+    Request Body: {"images_ids": [1,2,3]}
     Response: {"details": "the images have been deleted successfully"}
     """
     question = get_object_or_404(Question,id=qst_id)
     if question.author != request.user and not request.user.is_staff:
         return Response({'error': 'You are not the author of this question'},status=status.HTTP_403_FORBIDDEN)
-    images_ids = request.data.get('images_ids')
+    images_ids = request.data.get('images_ids',[])
+    
     if not images_ids:
         return Response({'success': 'No images selected for deletion'}, status=status.HTTP_200_OK)
+    try:
+        images_ids = [int(id) for id in images_ids]
+    except:
+        raise ValidationError('your images_ids did not respect the format List[int]')
 
-    images_ids = images_ids.split(',')
     images_to_delete = ImageQuestion.objects.filter(id__in=images_ids)
 
     for image in images_to_delete:
@@ -506,17 +527,20 @@ def delete_reply_images(request,reply_id):
     Description: Delete images from a reply (only by author or staff)
     Authentication: Required
     Parameters: reply_id (integer) - Reply ID
-    Request Body: {"images_ids": "1,2,3"}
+    Request Body: {"images_ids": [1,2,3]}
     Response: {"details": "the images have been deleted successfully"}
     """
     reply = get_object_or_404(Reply,id=reply_id)
     if reply.author != request.user and not request.user.is_staff:
         return Response({'error': 'You are not the author of this reply'},status=status.HTTP_403_FORBIDDEN)
-    images_ids = request.data.get('images_ids')
+    images_ids = request.data.get('images_ids',[])
     if not images_ids:
         return Response({'success': 'No images selected for deletion'}, status=status.HTTP_200_OK)
 
-    images_ids = images_ids.split(',')
+    try:
+        images_ids = [int(id) for id in images_ids]
+    except:
+        raise ValidationError('your images_ids did not respect the format List[int]')
     
     images_to_delete = ImageReply.objects.filter(id__in=images_ids)
 

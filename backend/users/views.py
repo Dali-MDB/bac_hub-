@@ -77,6 +77,13 @@ def get_profile(request,profile_id:int):
     return Response(serializer.data,status=status.HTTP_200_OK)
 
 
-
+@api_view(['GET'])
+def get_current_user(request):
+    is_authenticated = request.user.is_authenticated
+    id = request.user.id if is_authenticated else None
+    return Response({
+        "is_authenticated" : is_authenticated,
+        "id" : id,
+    })
 
 

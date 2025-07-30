@@ -21,6 +21,7 @@ class Profile(models.Model):
     school_name = models.CharField(max_length=30,null=True,blank=True)
     xp = models.IntegerField(default=0)
 
+
     def __str__(self):
         return self.user.email
 
@@ -94,7 +95,7 @@ class Question(models.Model):
 #images of a question
 class ImageQuestion(models.Model):
     img = models.ImageField(upload_to='images/')
-    question = models.ForeignKey(Question,on_delete=models.CASCADE)
+    question = models.ForeignKey(Question,on_delete=models.CASCADE,related_name='images')
 
 
 
@@ -125,6 +126,6 @@ class Reply(models.Model):
 #images of a reply
 class ImageReply(models.Model):
     img = models.ImageField(upload_to='images/')
-    reply = models.ForeignKey(Reply,on_delete=models.CASCADE)
+    reply = models.ForeignKey(Reply,on_delete=models.CASCADE,related_name='images')
     
 
