@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+*.egg
+*.pyo
+
+# Virtual environment
+bac/
+
+# Django
+*.log
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# VSCode
+.vscode/
+
+# Pytest
+.cache/
+
+# Migrations (optional if you want to ignore them)
+# **/migrations/*.py
+# **/migrations/*.pyc
